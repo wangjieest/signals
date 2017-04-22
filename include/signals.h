@@ -361,7 +361,7 @@ class signal_t {
 #define SIGNAL_DEFINE_ALL(sig, ...)                \
   public:                                          \
     using sig##_t = base::signal_t<##__VA_ARGS__>; \
-    sig##_t& GetSig##sig() { return $##sig##_; }   \
+    sig##_t& get_sig_##sig() { return $##sig##_; }   \
                                                    \
   protected:                                       \
     sig##_t $##sig##_;
@@ -369,9 +369,9 @@ class signal_t {
 // 抽象接口,接口类使用
 #define SIGNAL_DEFINE_PURE(sig, ...)               \
     using sig##_t = base::signal_t<##__VA_ARGS__>; \
-    virtual sig##_t& GetSig##sig() = 0;
+    virtual sig##_t& get_sig_##sig() = 0;
 
 // 实现接口+函数,直接可以放到private:下
 #define SIGNAL_DEFINE_OVERRIDE_IMPL(sig, ...)                   \
-    sig##_t& GetSig##sig() override final { return $##sig##_; } \
+    sig##_t& get_sig_##sig() override final { return $##sig##_; } \
     sig##_t $##sig##_;
