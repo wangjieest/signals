@@ -27,15 +27,15 @@ int main(int argc, char * argv[])
 	{
 		base::scoped_connection_t conn = sig.connect(&CCC::fn1, &a);
 		auto conn2 = sig.connect(&CCC::fn, &a);
-		sig.fire("step 1");
+		sig("step 1");
 		conn2.disconnect();
-		sig.fire("step 2");
+		sig("step 2");
 		sig.connect(&CCC::fn, &a);
-		sig.fire("step 3");
+		sig("step 3");
 		sig.disconnect(&CCC::fn, &a);
-		sig.fire("step 4");
+		sig("step 4");
 	}
-	sig.fire("step 5");
+	sig("step 5");
 
 	return 0;
 

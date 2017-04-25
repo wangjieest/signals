@@ -261,7 +261,7 @@ class signal_t {
         slot_list_->erase(key);
     }
 
-    inline void fire(Args... args) const {
+    inline void operator()(Args... args) const {
         // add ref
         bool need_erase = false;
         auto slot_list = slot_list_;
