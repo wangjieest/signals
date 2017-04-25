@@ -10,8 +10,8 @@
 namespace base {
 namespace detail_for_signals {
 struct key_type {
-    void* param1 = nullptr;  // for this or nothing
-    void* param2 = nullptr;  // for memfun or free fun pointer
+    const void* param1 = nullptr;  // for this or nothing
+    const void* param2 = nullptr;  // for memfun or free fun pointer
     bool operator<(const key_type& rhs) const {
         return (param1 < rhs.param1) || (param2 < rhs.param2);
     }
