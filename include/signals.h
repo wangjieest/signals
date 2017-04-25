@@ -31,16 +31,6 @@ struct key_type {
 template<typename T>
 using forward_t = std::conditional_t<std::is_reference_v<T>, T, T&&>;
 
-#define SIGNAL_USE_PROXY 0
-#if SIGNAL_USE_PROXY
-template<typename T, T>
-struct proxy;
-template<typename T, typename R, typename... Args, R (T::*mf)(Args...)>
-struct proxy<R (T::*)(Args...), mf> {
-    static R call(T& obj, Args... args) { return (obj.*mf)(forward_t<Args>(args)...); }
-};
-#else
-
 template<class TOut, class TIn>
 union horrible_union {
     TOut out;
@@ -60,24 +50,15 @@ inline TOut unsafe_horrible_cast(TIn mIn) noexcept {
     u.in = mIn;
     return u.out;
 }
-#endif
 
 // hash函数先这样实现,够用就行
 template<typename T, typename R, typename... Args>
 key_type get_hash(R (T::*const mem_fun)(Args...), T* const obj) {
-#if SIGNAL_USE_PROXY
-    return key_type{&proxy<decltype(mem_fun), mem_fun>::call, obj};
-#else
     return key_type(unsafe_horrible_cast<void*>(mem_fun), horrible_cast<void*>(obj));
-#endif
 }
 template<typename T, typename R, typename... Args>
 key_type get_hash(R (T::*const mem_fun)(Args...) const, T const* const obj) {
-#if SIGNAL_USE_PROXY
-    return key_type{&proxy<decltype(mem_fun), mem_fun>::call, obj};
-#else
     return key_type(unsafe_horrible_cast<void*>(mem_fun), horrible_cast<void*>(obj));
-#endif
 }
 template<typename R, typename... Args>
 key_type get_hash(R (*const FunctionPtr)(Args...)) {
