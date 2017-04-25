@@ -9,7 +9,6 @@
 
 namespace base {
 namespace detail_for_signals {
-// 为了统一起见,key在64位下拓宽到128位.
 struct key_type {
     void* param1 = nullptr;  // for this or nothing
     void* param2 = nullptr;  // for memfun or free fun pointer
@@ -25,14 +24,22 @@ struct key_type {
         param2 = nullptr;
     }
     key_type() = default;
-    key_type(void* p1, void* p2) : param1(p1), param2(p2) {}
-    key_type(const key_type& rhs) : param1(rhs.param1), param2(rhs.param2) {}
-    key_type& operator=(const key_type& rhs) {
-        param1 = rhs.param1;
-        param2 = rhs.param2;
-        return *this;
-    }
+    key_type(const key_type& rhs) = default;
+    key_type& operator=(const key_type& rhs) = default;
+    key_type(const void* p1, const void* p2) : param1(p1), param2(p2) {}
 };
+template<typename T>
+using forward_t = std::conditional_t<std::is_reference_v<T>, T, T&&>;
+
+#define SIGNAL_USE_PROXY 0
+#if SIGNAL_USE_PROXY
+template<typename T, T>
+struct proxy;
+template<typename T, typename R, typename... Args, R (T::*mf)(Args...)>
+struct proxy<R (T::*)(Args...), mf> {
+    static R call(T& obj, Args... args) { return (obj.*mf)(forward_t<Args>(args)...); }
+};
+#else
 
 template<class TOut, class TIn>
 union horrible_union {
@@ -53,23 +60,29 @@ inline TOut unsafe_horrible_cast(TIn mIn) noexcept {
     u.in = mIn;
     return u.out;
 }
+#endif
+
 // hash函数先这样实现,够用就行
 template<typename T, typename R, typename... Args>
 key_type get_hash(R (T::*const mem_fun)(Args...), T* const obj) {
+#if SIGNAL_USE_PROXY
+    return key_type{&proxy<decltype(mem_fun), mem_fun>::call, obj};
+#else
     return key_type(unsafe_horrible_cast<void*>(mem_fun), horrible_cast<void*>(obj));
+#endif
 }
 template<typename T, typename R, typename... Args>
 key_type get_hash(R (T::*const mem_fun)(Args...) const, T const* const obj) {
+#if SIGNAL_USE_PROXY
+    return key_type{&proxy<decltype(mem_fun), mem_fun>::call, obj};
+#else
     return key_type(unsafe_horrible_cast<void*>(mem_fun), horrible_cast<void*>(obj));
+#endif
 }
 template<typename R, typename... Args>
 key_type get_hash(R (*const FunctionPtr)(Args...)) {
-    return key_type(nullptr, horrible_cast<void*>(obj));
+    return key_type(nullptr, obj);
 }
-
-
-template<typename T>
-using forward_t = std::conditional_t<std::is_reference_v<T>, T, T&&>;
 
 template<typename T, typename R, typename... Args>
 std::function<void(Args...)> make_slot(R (T::*const mem_fun)(Args...), T* const obj) {
@@ -361,7 +374,7 @@ class signal_t {
 #define SIGNAL_DEFINE_ALL(sig, ...)                \
   public:                                          \
     using sig##_t = base::signal_t<##__VA_ARGS__>; \
-    sig##_t& get_sig_##sig() { return $##sig##_; }   \
+    sig##_t& get_sig_##sig() { return $##sig##_; } \
                                                    \
   protected:                                       \
     sig##_t $##sig##_;
@@ -372,6 +385,6 @@ class signal_t {
     virtual sig##_t& get_sig_##sig() = 0;
 
 // 实现接口+函数,直接可以放到private:下
-#define SIGNAL_DEFINE_OVERRIDE_IMPL(sig, ...)                   \
+#define SIGNAL_DEFINE_OVERRIDE_IMPL(sig, ...)                     \
     sig##_t& get_sig_##sig() override final { return $##sig##_; } \
     sig##_t $##sig##_;
