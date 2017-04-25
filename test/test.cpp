@@ -22,10 +22,10 @@ private:
 
 int main(int argc, char * argv[])
 {
-	base::signal_t<const char*> sig;
+	signals::signal_t<const char*> sig;
 	CCC a;
 	{
-		base::scoped_connection_t conn = sig.connect(&CCC::fn1, &a);
+		signals::scoped_connection_t conn = sig.connect(&CCC::fn1, &a);
 		auto conn2 = sig.connect(&CCC::fn, &a);
 		sig("step 1");
 		conn2.disconnect();
